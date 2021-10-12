@@ -16,24 +16,60 @@
 	<script src="react/react-dom.js"></script>
 	<script src="react/babel.js"></script>
 	<script type="text/babel">
-		const MyComponent = ({name, nickname}) => {
-				return <span>{name}: {nickname}</span>
-			};
 
-		MyComponent.defaultProps = {
-			nickname: "bweeee",
-		};
+		class LifecycleLoggerComp extends React.Component {
+			static getName() { }
+			componentDidMount() {
+				console.log(this.constructor.getName() + '::componentDidMount');
+			}
 
-		class MyComponentClass extends React.Component {
+			componentWillUnmount() {
+				console.log(this.constructor.getName() + '::componentWillUnmount');
+			}
+
+			compoenentDidUpdate(prevProps, prevState, snapshot) {
+				console.log(this.constructor.getName() + '::componentDidUpdate');
+			}
+			
 			render() {
-				return <span>component : {this.props.name}</span>;
-			;}
+				console.log(this.constructor.getName() + '::render');
+			}
+
+		}
+
+		class Counter extends LifecycleLoggerComp {
+			static getName() { return 'Counter' };
+			
+			render() {
+				return <h3>{this.props.count}</h3>;
+			}
+		}
+		
+		Counter.defaultProps = {
+			count: 0,
 		};
 
-		class TextAreaConunter extends React.Component {
+		class TextAreaCounter extends LifecycleLoggerComp {
+			static getName() { return 'TextAreaCounter' };
+
 			constructor() {
 				super();
 				this.state = {};
+			}
+			
+			render() {
+				const text = 'text' in this.state ? this.state.text : this.props.text;
+				return (
+					<div>
+						<textarea
+							value={text}
+							onChange={event => this.onTextChange(event)}
+						/>
+						{text.length > 0 ?
+							<Counter count={text.length} /> : null
+						}
+					</div>
+				)
 			}
 
 			onTextChange(event) {
@@ -41,28 +77,15 @@
 					text: event.target.value,
 				});
 			}
-
-			render() {
-				const text = 'text' in this.state ? this.state.text : this.props.text;
-				return (
-					<div>
-						<textarea 
-							value={text}
-							onChange={event => this.onTextChange(event)} 
-						/>
-						<h3>{text.length}</h3>
-					</div>
-				);
-			}
-		};
-
-		TextAreaConunter.defaultProps = {
+		}
+		
+		TextAreaCounter.defaultProps = {
 			text: "I am here",
 		};
 
 		// my app's code 
 		const myTextAreaCounter = ReactDOM.render(
-			<TextAreaConunter />,
+			<TextAreaCounter />,
 			document.getElementById('app'));
 
 	</script>
