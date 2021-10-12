@@ -124,13 +124,17 @@
 		class Excel extends React.Component {
 			constructor(props) {
 				super();
-				this.state = {data: props.initialData};
+				this.state = {
+					data: props.initialData,
+					sortby: null,
+					descending: false,
+				};
 				this.sort = this.sort.bind(this);
 			}
 			
 			sort(e) {
 				const column = e.target.cellIndex;
-				console.log("Sort by this column");
+				const descending = this.state.sortby === column && !this.state.descending;
 				
 				// helper
 				function clone(o) {
@@ -144,11 +148,19 @@
 					if (a[column] === b[column]) {
 						return 0;
 					}
-					return a[column] > b[column] ? 1 : -1;
+					return descending 
+					? a[column] < b[column]
+						? 1
+						: -1
+					: a[column] > b[column] 
+						? 1 
+						: -1;
 				});
 				
 				this.setState({
 					data,
+					sortby: column,
+					descending,
 				})
 			}
 
@@ -157,7 +169,12 @@
 					<table>
 						<thead>
 							<tr onClick={this.sort}>
-								{this.props.headers.map((title,i) => <th key={i}>{title}</th>)}
+								{this.props.headers.map((title,idx) => {
+									if (this.state.sortby === idx) {
+										title += this.state.descending ? ' \u2191': ' \u2193'
+									}
+									return <th key={idx}>{title}</th>
+								})}
 							</tr>
 						</thead>
 						<tbody>
