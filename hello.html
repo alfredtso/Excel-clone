@@ -30,7 +30,7 @@
 			compoenentDidUpdate(prevProps, prevState, snapshot) {
 				console.log(this.constructor.getName() + '::componentDidUpdate');
 			}
-			
+
 			render() {
 				console.log(this.constructor.getName() + '::render');
 			}
@@ -39,12 +39,12 @@
 
 		class Counter extends LifecycleLoggerComp {
 			static getName() { return 'Counter' };
-			
+
 			render() {
 				return <h3>{this.props.count}</h3>;
 			}
 		}
-		
+
 		Counter.defaultProps = {
 			count: 0,
 		};
@@ -56,7 +56,7 @@
 				super();
 				this.state = {};
 			}
-			
+
 			render() {
 				const text = 'text' in this.state ? this.state.text : this.props.text;
 				return (
@@ -78,15 +78,37 @@
 				});
 			}
 		}
-		
+
 		TextAreaCounter.defaultProps = {
 			text: "I am here",
 		};
 
 		// my app's code 
-		const myTextAreaCounter = ReactDOM.render(
-			<TextAreaCounter />,
-			document.getElementById('app'));
+		// const myTextAreaCounter = ReactDOM.render(
+		//	<TextAreaCounter />,
+		//  document.getElementById('app'));
+
+		// Excel 
+
+		const headers = ['Book', 'Author', 'Language', 'Published', 'Sales'];
+		class Excel extends React.Component {
+			render() {
+				return (
+					<table>
+						<thead>
+							<tr>
+								{this.props.headers.map((title,i) => <th key={i}>{title}</th>)}
+							</tr>
+						</thead>
+					</table>
+				);
+			}
+		}
+
+		ReactDOM.render(
+			<Excel headers={headers} />,
+			document.getElementById('app'),
+			);
 
 	</script>
 </body>
