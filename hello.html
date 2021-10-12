@@ -120,6 +120,10 @@
 			],
 		];
 		
+		// helper
+		function clone(o) {
+			return JSON.parse(JSON.stringify(o));
+		}
 
 		class Excel extends React.Component {
 			constructor(props) {
@@ -128,18 +132,45 @@
 					data: props.initialData,
 					sortby: null,
 					descending: false,
+					edit: null,
 				};
+				this.showEditor = this.showEditor.bind(this);
+				this.save = this.save.bind(this);
 				this.sort = this.sort.bind(this);
 			}
 			
+			showEditor(e) {
+				this.setState({
+					edit: {
+						// fix this `parentNode.dataset`
+						row: parseInt(e.target.parentNode.dataset.row, 10),
+						column: e.target.cellIndex,
+					}
+				})
+				console.log(`called showEditor(), and set edit at row: ${this.state.edit.row}, col: ${this.state.edit.column}`);
+			}
+			
+			save(e) {
+				e.preventDefault();
+				console.log("call save()");
+				// set new state for data and reset `edit` to null
+
+				const newValue = e.target.firstChild.value;
+				const data = clone(this.state.data);
+				const edit = this.state.edit;
+
+				data[edit.row][edit.column] = newValue;
+
+				this.setState({
+					edit: null,
+					data,
+				})
+			}
+
 			sort(e) {
 				const column = e.target.cellIndex;
 				const descending = this.state.sortby === column && !this.state.descending;
 				
-				// helper
-				function clone(o) {
-					return JSON.parse(JSON.stringify(o));
-				}
 				
 				//copy the data
 				const data = clone(this.state.data);
@@ -177,12 +208,21 @@
 								})}
 							</tr>
 						</thead>
-						<tbody>
-							{this.state.data.map((row, idx) => (
-								<tr key={idx}>
-									{row.map((cell, idx) => (
-										<td key={idx}>{cell}</td>
-									))}
+						<tbody onDoubleClick={this.showEditor}>
+							{this.state.data.map((row, rowidx) => (
+								// added the `data-row attri because showEditor() needs the row num and DOM has none
+								<tr key={rowidx} data-row={rowidx}>
+									{row.map((cell, columnidx) => {
+										const edit = this.state.edit;
+										if (edit && edit.row === rowidx && edit.column === columnidx) {
+											cell = (
+											<form onSubmit={this.save}>
+												<input type="text" defaultValue={cell} />
+											</form>
+											)
+										}
+										return <td key={columnidx}>{cell}</td>
+									})}
 								</tr>
 							))}
 						</tbody>
@@ -191,7 +231,7 @@
 				}
 		}
 
-		ReactDOM.render(
+		const myCell = ReactDOM.render(
 			<Excel headers={headers} initialData={data}/>,
 			document.getElementById('app'),
 			);
