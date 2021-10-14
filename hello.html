@@ -128,15 +128,36 @@
 		class Excel extends React.Component {
 			constructor(props) {
 				super();
+				const data = clone(props.initialData).map((row, idx) => {
+					row.push(idx);
+					return row;
+				})
 				this.state = {
-					data: props.initialData,
+					data,
 					sortby: null,
 					descending: false,
 					edit: null,
+					search: false,
 				};
+				
+				this.preSeachData = null;
+				
 				this.showEditor = this.showEditor.bind(this);
 				this.save = this.save.bind(this);
 				this.sort = this.sort.bind(this);
+				this.toggleSearch = this.toggleSearch.bind(this);
+				this.search = this.search.bind(this);
+			}
+			
+			toggleSearch(e) {
+				console.log("toogle search");
+				this.setState({
+					search: !this.state.search,
+				})
+			}
+			
+			search(e) {
+				console.log("search");
 			}
 			
 			showEditor(e) {
@@ -196,7 +217,22 @@
 			}
 
 			render() {
+
+				const searchRow = !this.state.search ? null : (
+					<tr onChange={this.search}>
+						{this.props.headers.map((_, idx) => (
+							<td key={idx}>
+								<input type="text" data-idx={idx} />
+							</td>
+						))}
+					</tr>
+				);
+
 				return (
+					<div>
+						<button className="toolbar" onClick={this.toggleSearch}>
+							{this.state.search ? 'Hide search' : 'Show search' }
+						</button>
 					<table>
 						<thead>
 							<tr onClick={this.sort}>
@@ -209,10 +245,18 @@
 							</tr>
 						</thead>
 						<tbody onDoubleClick={this.showEditor}>
-							{this.state.data.map((row, rowidx) => (
+							{searchRow}
+							{this.state.data.map((row, rowidx) => {
+								// get the ID we added there in the constructor
+								const recordId = row[row.length - 1];
+								return (
 								// added the `data-row attri because showEditor() needs the row num and DOM has none
-								<tr key={rowidx} data-row={rowidx}>
+								<tr key={recordId} data-row={recordId}>
 									{row.map((cell, columnidx) => {
+										if (columnidx == this.props.headers.length) {
+											// skip the record ID in the UI
+											return;
+										}
 										const edit = this.state.edit;
 										if (edit && edit.row === rowidx && edit.column === columnidx) {
 											cell = (
@@ -224,9 +268,10 @@
 										return <td key={columnidx}>{cell}</td>
 									})}
 								</tr>
-							))}
+							)})}
 						</tbody>
 					</table>
+				</div>
 							);
 				}
 		}
