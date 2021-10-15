@@ -74,7 +74,7 @@
 			}
 
 			onTextChange(event) {
-				this.setState({
+				this.logSetState({
 					text: event.target.value,
 				});
 			}
@@ -140,30 +140,106 @@
 					search: false,
 				};
 				
-				this.preSeachData = null;
+				this.preSearchData = null;
+				this.log = [clone(this.state)]
+				this.replayID = null;
 				
 				this.showEditor = this.showEditor.bind(this);
 				this.save = this.save.bind(this);
 				this.sort = this.sort.bind(this);
 				this.toggleSearch = this.toggleSearch.bind(this);
 				this.search = this.search.bind(this);
+				this.replay = this.replay.bind(this);
+				this.logSetState = this.logSetState.bind(this);
+				this.keydownHandler = this.keydownHandler.bind(this);
+				this.downloadCSV = this.download(this, 'csv');
+				this.downloadJSON = this.download(this, 'json');
+			}
+			
+			replay(e) {
+				// case 1: no log yet
+				if (this.log.length === 1) {
+					console.warn("No change of state to replay yet");
+					return;
+				}
+				let idx = -1;
+				// use replayID as class property to we can use LifeCycle method to clear when unmount
+				this.replayID = setInterval(() => {
+					if (++idx === this.log.length - 1) {
+						// the end
+						clearInterval(this.replayID);
+					}
+					this.setState(this.log[idx]);
+					console.log(Date.now());
+				}, 1000);
+
+				console.log("called replay");
+			}
+			
+			logSetState(newState) {
+				console.log("Called logSetState")
+				this.log.push(clone(newState));
+				this.setState(newState);
+			}
+			
+			componentDidMount() {
+				document.addEventListener('keydown', this.keydownHandler);
+			}
+			
+			componentWillUnmount() {
+				document.removeEventListener('keydown', this.keydownHandler);
+				clearInterval(this.replayID);
+			}
+			
+			keydownHandler(e) {
+				if (e.altKey && e.keyCode === 82) {
+					this.replay();
+				}
 			}
 			
 			toggleSearch(e) {
-				console.log("toogle search");
-				this.setState({
-					search: !this.state.search,
-				})
+				console.log("Called toggle search function")
+				if (this.state.search) {
+					this.logSetState({
+						data: this.preSearchData,
+						search: false
+					});
+					this.preSearchData = null;
+				} else {
+					this.preSearchData = this.state.data;
+					this.logSetState({
+						search: true,
+					})
+				}
 			}
 			
 			search(e) {
-				console.log("search");
+				// get the value
+				const term = e.target.value.toLowerCase();
+				console.log("the target is " + term);
+				
+				// get the idx which is the column id ; note that in DOM there is only id for col but not row
+				const idx = e.target.dataset.idx;
+				console.log("the idx is " + idx);
+				
+				if (!term) {
+					this.logSetState({
+						data: this.preSearchData,
+					});
+					return;
+				} else {
+					const search = this.preSearchData.filter((row) => {
+						return row[idx].toString().toLowerCase().indexOf(term) > -1;
+					});
+					this.logSetState({ data: search});
+				}
 			}
 			
 			showEditor(e) {
-				this.setState({
+				this.logSetState({
 					edit: {
 						// fix this `parentNode.dataset`
+						// TODO: the row number is incorrect when in editing during search. Edit only works if the row order is same as pre-searching
 						row: parseInt(e.target.parentNode.dataset.row, 10),
 						column: e.target.cellIndex,
 					}
@@ -172,20 +248,30 @@
 			}
 			
 			save(e) {
+				// need this in order to save
 				e.preventDefault();
 				console.log("call save()");
 				// set new state for data and reset `edit` to null
 
 				const newValue = e.target.firstChild.value;
-				const data = clone(this.state.data);
 				const edit = this.state.edit;
+				const data = clone(this.state.data).map((row) => {
+					// if the row id is same as the row id in `edit`, then modify it
+					if (row[row.length-1] === edit.row) {
+						row[edit.column] = newValue;
+					}
+					return row;
+				})
 
-				data[edit.row][edit.column] = newValue;
-
-				this.setState({
+				this.logSetState({
 					edit: null,
 					data,
-				})
+				});
+				
+				// Also update the preSearchData
+				if (this.preSearchData) {
+					this.preSearchData[edit.row][edit.column] = newValue;
+				}
 			}
 
 			sort(e) {
@@ -209,11 +295,25 @@
 						: -1;
 				});
 				
-				this.setState({
+				this.logSetState({
 					data,
 					sortby: column,
 					descending,
 				})
+			}
+			
+			download(e, format) {
+				const data = clone(this.state.data).map(r => {
+					r.pop();
+					return r;
+				})
+				const content = 
+					format === 'json'
+						? JSON.stringify(data, null, ' ')
+						// implementation for csv format
+						: data.reduce((result, row) => {
+							console.log(result + row);
+						});
 			}
 
 			render() {
@@ -230,9 +330,17 @@
 
 				return (
 					<div>
+						<div className="toolbar">
 						<button className="toolbar" onClick={this.toggleSearch}>
 							{this.state.search ? 'Hide search' : 'Show search' }
 						</button>
+						<a href="data.json" onClick={this.downloadJSON}>
+							Export JSON
+						</a>
+						<a href="data.csv" onClick={this.downloadCSV}>
+							Export CSV
+						</a>
+						</div>
 					<table>
 						<thead>
 							<tr onClick={this.sort}>
