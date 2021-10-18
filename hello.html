@@ -152,8 +152,8 @@
 				this.replay = this.replay.bind(this);
 				this.logSetState = this.logSetState.bind(this);
 				this.keydownHandler = this.keydownHandler.bind(this);
-				this.downloadCSV = this.download(this, 'csv');
-				this.downloadJSON = this.download(this, 'json');
+				this.downloadCSV = this.download.bind(this, 'csv');
+				this.downloadJSON = this.download.bind(this, 'json');
 			}
 			
 			replay(e) {
@@ -302,7 +302,8 @@
 				})
 			}
 			
-			download(e, format) {
+			download(format, e) {
+				console.log("called download");
 				const data = clone(this.state.data).map(r => {
 					r.pop();
 					return r;
@@ -312,8 +313,21 @@
 						? JSON.stringify(data, null, ' ')
 						// implementation for csv format
 						: data.reduce((result, row) => {
-							console.log(result + row);
-						});
+							return (
+								result +
+								row.reduce((rowcontent, cellcontent, idx) => {
+									const cell = cellcontent.replace(/"/g, '""');
+									const delimited = idx < row.length - 1 ? ',' : '';
+									return `${rowcontent}"${cellcontent}"${delimited}`;
+								}, '') +
+								'\n'
+							);
+						}, '');
+						
+				const URL = window.URL || window.webkitURL;
+				const blob = new Blob([content], {type: 'text/' + format});
+				e.target.href = URL.createObjectURL(blob);
+				e.target.download = 'data.' + format;
 			}
 
 			render() {
