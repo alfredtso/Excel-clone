@@ -93,6 +93,7 @@
 		// test
 
 		const headers = ['Book', 'Author', 'Language', 'Published', 'Sales'];
+
 		const data = [
 			[
 				'A Tale of Two Cities', 'Charles Dickens',
@@ -184,6 +185,15 @@
 			
 			componentDidMount() {
 				document.addEventListener('keydown', this.keydownHandler);
+				fetch('https://www.phpied.com/files/reactbook/table-data.json')
+					.then((response) => response.json())
+					.then((initialData) => {
+						const data = clone(initialData).map((row, idx) => {
+							row.push(idx);
+							return row;
+						});
+						this.setState({data});
+					})
 			}
 			
 			componentWillUnmount() {
@@ -366,6 +376,15 @@
 								})}
 							</tr>
 						</thead>
+						{this.state.data.length === 0 ? (
+							<tbody>
+								<tr>
+									<td colSpan={this.props.headers.length}>
+										Loading
+									</td>
+								</tr>
+							</tbody>
+						) : (
 						<tbody onDoubleClick={this.showEditor}>
 							{searchRow}
 							{this.state.data.map((row, rowidx) => {
@@ -392,6 +411,7 @@
 								</tr>
 							)})}
 						</tbody>
+						)}
 					</table>
 				</div>
 							);
@@ -399,7 +419,7 @@
 		}
 
 		const myCell = ReactDOM.render(
-			<Excel headers={headers} initialData={data}/>,
+			<Excel headers={headers} initialData={[]}/>,
 			document.getElementById('app'),
 			);
 
